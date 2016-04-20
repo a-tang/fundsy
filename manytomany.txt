@@ -1,0 +1,316 @@
+************* ONE TO MANY*************************
+
+bin/rails g model user first_name last_name email password_digest
+
+--------------------------------------------------------------------------------------
+
+check factories/user.rb
+
+FactoryGirl.define do
+  factory :user do
+    first_name       { Faker::Name.first_name }
+    last_name        { Faker::Name.last_name }
+    sequence(:email) {|n| Faker::Internet.email.gsub("@", "-#{n}@") }
+    password         { Faker::Internet.password }
+  end
+end
+
+
+
+test out in rails console 
+
+FactoryGirl.attributes_for(:user)
+------------------------------------------------------------------------------------------
+
+* user_spec.rb (
+
+require 'rails_helper'
+
+RSpec.describe User, type: :model do
+  describe "validations" do
+    it "requires a first name" do
+      u = User.new FactoryGirl.attributes_for(:user).merge({first_name: nil})
+      expect(u).to be_invalid
+    end
+    it "requies a last name"
+    it "requiers an email"
+  end
+  describe ".full_name" do
+    it "returns concatenated first and last names"
+  end
+end
+
+
+bin/rake db:migrate
+-----------------------------
+model/user.rb
+
+add attr_accessor :password
+
+add the following and test should pass now:
+validates :first_name, presence: true
+
+
+----------------------------------------------------
+
+do the same now for the rest of the test on user_spec.rb
+
+require 'rails_helper'
+
+RSpec.describe User, type: :model do
+  describe "validations" do
+    it "requires a first name" do
+      u = User.new FactoryGirl.attributes_for(:user).merge({first_name: nil})
+      expect(u).to be_invalid
+    end
+
+    it "requies a last name" do
+      u = User.new FactoryGirl.attributes_for(:user).merge({last_name: nil})
+      expect(u).to be_invalid
+    end
+
+    it "requiers an email" do
+      u = User.new FactoryGirl.attributes_for(:user).merge({email: nil})
+      expect(u).to be_invalid
+    end
+
+    it "requires a unique email" do
+      u  = FactoryGirl.create(:user)
+      u2 = User.new FactoryGirl.attributes_for(:user).merge({email: u.email})
+      expect(u2).to be_invalid
+    end
+  end
+
+  describe ".full_name" do
+    it "returns concatenated first and last names" do
+      u = User.new FactoryGirl.attributes_for(:user).
+                        merge({first_name: "John", last_name: "Smith"})
+      expect(u.full_name).to eq("John Smith")
+    end
+  end
+
+describe "hashing the password" do
+    it "generates a password digest" do
+      u = User.new FactoryGirl.attributes_for(:user)
+      u.save
+      expect(u.password_digest).to be
+    end
+  end
+end
+
+-----------------------------------------------
+
+updated model/user.rb to catch the errors
+
+class User < ActiveRecord::Base
+  attr_accessor :password (<<<change to  'has_secure_password' but make sure the bcrypt is activated)
+
+  validates :first_name, presence: true
+  validates :last_name, presence: true
+  validates :email, presence: true, uniqueness: true
+
+  def full_name
+    "#{first_name} #{last_name}"
+  end
+end
+
+-----------------------------------------------------
+controller Users test
+bin/rails g controller users
+
+user_controller_spec.rb
+
+require 'rails_helper'
+
+RSpec.describe UsersController, type: :controller do
+
+  describe "#new" do
+    it "renders the new template"
+    it "assigns a new user variable"
+  end
+
+  describe "#create" do
+    context "with valid user attributes" do
+      it "add a new user record to the database"
+      it "redirects to the home page"
+      it "sets a flash message"
+    end
+    context "with invalid user attributes" do
+      it "doesn't add a record to the database"
+      it "renders the new template"
+    end
+  end
+end
+
+* common practice to write the test out the requirements like above
+
+require 'rails_helper'
+
+RSpec.describe UsersController, type: :controller do
+
+  describe "#new" do
+    it "renders the new template" do
+      get :new
+      expect(response).to render_template(:new)
+    end
+
+    it "assigns a new user variable" do
+      get :new
+      expect(assigns(:user)).to be_a_new(User)
+    end
+  end
+
+  describe "#create" do
+    context "with valid user attributes" do
+      it "add a new user record to the database"
+      it "redirects to the home page"
+      it "sets a flash message"
+    end
+    context "with invalid user attributes" do
+      it "doesn't add a record to the database"
+      it "renders the new template"
+    end
+  end
+end
+-------------------------------
+update routes
+
+resources :users, only: [:new, :create]
+
+update users controller
+
+class UsersController < ApplicationController
+
+  def new
+    @user = User.new
+  end
+end
+
+create view/user/new.html.erb
+
+--------------------------------------------------------------------
+
+      it "add a new user record to the database" do
+        count_before = User.count
+        valid_request
+        count_after  = User.count
+        expect(count_after).to eq(count_before + 1)
+      end
+      
+      
+ run rspec (it will fail)
+ 
+ update user_controller.rb
+ 
+ class UsersController < ApplicationController
+
+  def new
+    @user = User.new
+  end
+
+  def create
+    user_params = params.require(:user).permit(:first_name, :last_name, :email,
+                                                :password)
+    @user = User.create user_params
+    render nothing: true
+  end
+end
+
+udpate user_controller_spec
+
+      it "redirects to the home page" do
+        valid_request
+        expect(response).to redirect_to(root_path)
+      end
+      
+update routes.rb
+
+
+  root "campaigns#index"
+  
+  
+update user_controller
+
+ def create
+   user_params = params.require(:user).permit(:first_name, :last_name, :email,
+                                               :password)
+   @user = User.create user_params
+   redirect_to root_path
+ end
+ 
+ back to user_controller_spec
+ 
+      it "sets a flash message" do
+        valid_request
+        expect(flash[:notice]).to be
+      end
+      
+users_controller.rb
+
+redirect_to root_path, notice: "account created!"
+
+back users_controller_spec - adding another test
+
+      it "sets the session user_id with the created user id" do
+        valid_request
+        expect(session[:user_id]).to eq(User.last.id)
+      end
+      
+      
+users_controller.rb
+
+ def create
+   user_params = params.require(:user).permit(:first_name, :last_name, :email,
+                                               :password)
+   @user = User.create user_params
+   session[:user_id] = @user.id
+   redirect_to root_path, notice: "account created!"
+ end
+ 
+ 
+
+users_controller_spec
+
+    context "with invalid user attributes" do
+      def invalid_request
+        post :create, user: FactoryGirl.attributes_for(:user).merge(first_name: nil)
+      end
+      it "doesn't add a record to the database" do
+        count_before = User.count
+        invalid_request
+        count_after = User.count
+        expect(count_after).to eq(count_before)
+      end
+      it "renders the new template"
+    end
+  end
+end
+
+run the test and it will pass - comment out the validation (line 4) to make it fail (sanity check)
+
+users_controller_spec
+
+  it "renders the new template" do
+        invalid_request
+        expect(response).to render_template(:new)        
+      end
+    end
+    
+    
+    user_controller.rb
+    
+      def create
+    user_params = params.require(:user).permit(:first_name, :last_name, :email,
+                                                :password)
+    @user = User.new user_params
+    if @user.save
+      session[:user_id] = @user.id
+      redirect_to root_path, notice: "account created!"
+    else
+      render :new
+    end
+  end
+end
+
+rm spec/helpers//users_helper_spec.rb
+test now complete - should have 41 passes
