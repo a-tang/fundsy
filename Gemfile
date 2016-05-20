@@ -1,7 +1,9 @@
 source 'https://rubygems.org'
+gem "quiet_assets"
+gem 'cocoon'
 gem 'bootstrap-sass'
 gem 'underscore-rails'
-
+gem 'sidekiq'
 gem 'gmaps4rails'
 gem 'sass-rails'
 gem 'twitter'
