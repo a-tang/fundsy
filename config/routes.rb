@@ -1,12 +1,13 @@
 Rails.application.routes.draw do
-
+  resources :users, only: [:new, :create]
   get "/auth/twitter", as: :sign_in_with_twitter
   get "/auth/twitter/callback" => "callbacks#twitter"
 
-
-  resources :users, only: [:new, :create]
   resources :campaigns do
-    resources :pledges, only: [:new, :creates]
+    resources :pledges, only: [:new, :create]
+    resources :publishings, only: [] do
+      patch :update, on: :collection
+    end
   end
 
   resources :nearby_campaigns, only: [:index]
@@ -20,7 +21,7 @@ Rails.application.routes.draw do
     end
   end
 
-    root "campaigns#index"
+  root "campaigns#index"
   # The priority is based upon order of creation: first created -> highest priority.
   # See how all your routes lay out with "rake routes".
 

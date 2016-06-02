@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
+gem 'aasm'
 gem "quiet_assets"
 gem 'cocoon'
 gem 'bootstrap-sass'
@@ -32,7 +33,7 @@ gem 'sdoc', '~> 0.4.0', group: :doc
 
 # Use ActiveModel has_secure_password
 gem 'bcrypt', '~> 3.1.7'
-
+gem 'draper'
 # Use Unicorn as the app server
 # gem 'unicorn'
 
