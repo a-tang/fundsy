@@ -1,4 +1,6 @@
 source 'https://rubygems.org'
+
+gem "stripe"
 gem 'aasm'
 gem "quiet_assets"
 gem 'cocoon'
