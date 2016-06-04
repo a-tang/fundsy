@@ -1,5 +1,7 @@
 source 'https://rubygems.org'
 
+gem 'virtus'
+
 gem "stripe"
 gem 'aasm'
 gem "quiet_assets"

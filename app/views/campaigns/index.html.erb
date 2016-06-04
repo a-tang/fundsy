@@ -4,7 +4,7 @@
 
 <% @campaigns.each do |campaign| %>
   <div class="well">
-    <%= campaign.decorate.h3_title %>
+    <%= campaign.decorate.h3_title %> (<%= campaign.pledges.size %>)
     <hr>
   </div>
 <% end %>
